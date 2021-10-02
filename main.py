@@ -20,6 +20,7 @@ def get_kraken_signature(url_path, data, secret):
 
 
 class KrakenAPI:
+    """See https://docs.kraken.com/rest/ for information on the API"""
     # API Constants
     API = 'https://api.kraken.com'
     API_SERVER_TIME = API + '/0/public/Time'
