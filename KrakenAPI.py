@@ -58,6 +58,13 @@ class KrakenAPI:
         self.API_CANCEL_ALL_ORDERS = '/0/private/CancelAll'
         self.API_CANCEL_ORDERS_AFTER_TIME = '/0/private/CancelAllOrdersAfter'
         self.API_DEPOSIT_METHODS = '/0/private/DepositMethods'
+        self.API_DEPOSIT_ADDRESSES = '/0/private/DepositAddresses'
+        self.API_DEPOSIT_STATUS = '/0/private/DepositStatus'
+        self.API_WITHDRAWAL_INFO = '/0/private/WithdrawInfo'
+        self.API_WITHDRAW_FUNDS = '/0/private/Withdraw'
+        self.API_WITHDRAW_STATUS = '/0/private/WithdrawStatus'
+        self.API_WITHDRAW_CANCEL = '/0/private/WithdrawCancel'
+        self.API_WALLET_TRANSFER = '/0/private/WalletTransfer'
 
     def kraken_request(self, uri_path: str, data: dict, api_key: str, api_sec: str):
         """Attaches auth headers and returns results of a POST request"""
@@ -745,4 +752,249 @@ class KrakenAPI:
             'nonce': str(int(1000 * time.time())),
             'asset': asset
         }, API_KEY, API_SEC)
+
+    def get_deposit_addresses(self, params: dict):
+        """
+        Retrieve (or generate a new) deposit addresses for a particular asset and method.
+        https://docs.kraken.com/rest/#operation/getDepositAddresses
+
+        Parameters
+        ----------
+        asset: string (required)
+            Asset being deposited
+        method: string (required)
+            Name of the deposit method
+        new: boolean
+            Whether or not to generate new addresses
+            Default: False
+        :return:
+
+        Returns
+        -------
+        Response: depositAddress <Array>
+            address: string
+                Deposit Address
+            expiretm: string
+                Expiration time in unix timestamp, or - if not expiring
+            new: boolean
+                Whether or not address had ever been used
+        """
+        return self.kraken_request(self.API_DEPOSIT_ADDRESSES, {
+            'nonce': str(int(1000 * time.time())),
+            **params
+        }, API_KEY, API_SEC)
+
+    def getDepositStatus(self, params: dict):
+        """
+        Retrieve information about recent deposits made
+        https://docs.kraken.com/rest/#operation/getStatusRecentDeposits
+
+        Parameters
+        ----------
+        asset: string (required)
+            Asset being deposited
+        method: string
+            Name of the deposit method
+        :returns:
+
+        Returns
+        -------
+        Response: Deposit <Array>
+            Method: string
+                Name of deposit method
+            aclass: string
+                Asset class
+            asset: string
+                Asset
+            refid: string
+                Reference ID
+            txid: string
+                Method transaction ID
+            info: string
+                Method transaction information
+            amount: string
+                Amount deposited
+            fee: any
+                Fees paid
+            time: integer <int32>
+                Unix timestamp when request was made
+            status: any
+                Status of deposit
+            status-prop: string
+                Addition status Properties
+                Enum:
+                    "return" - A return transaction initiated by Kraken
+                    "onhold" - Deposit is on hold pending review
+        """
+        return self.kraken_request(self.API_DEPOSIT_STATUS, {
+            'nonce': str(int(1000 * time.time())),
+            **params
+        }, API_KEY, API_SEC)
+
+    def get_withdrawal_information(self,params: dict):
+        """
+        Retrieve fee information about potential withdrawals for a particular asset, key and amount
+        https://docs.kraken.com/rest/#operation/getWithdrawalInformation
+
+        Parameters
+        ----------
+        asset: string (required)
+            Asset being withdrawn
+        key: string (required)
+            Withdrawal key name, as set up on your account
+        amount: string (required)
+            Amount to be withdrawn
+        :return:
+
+        Returns
+        -------
+        Response: withdrawalInfo
+            method: string
+                Name of the withdrawal method that will be used
+            limit: string
+                Maximum net amount that can be withdrawn right now
+            amount: string
+                New amount that will be sent, after fees
+            fee: string
+                Amount of fees that will be paid
+        """
+        return self.kraken_request(self.API_WITHDRAWAL_INFO, {
+            'nonce': str(int(1000 * time.time())),
+            **params
+        }, API_KEY, API_SEC)
+
+    def withdraw_funds(self, params: dict):
+        """
+        Make a withdrawal request
+        https://docs.kraken.com/rest/#operation/withdrawFunds
+
+        Parameters
+        ----------
+        asset: string (required)
+            Asset being withdrawn
+        key: string (required)
+            Withdrawal key name, as set up on your account
+        amount: string (required)
+            Amount to be withdrawn
+        :return:
+
+        Returns
+        -------
+        Response: object
+            refid: string
+                Reference ID
+        """
+        return self.kraken_request(self.API_WITHDRAW_FUNDS, {
+            'nonce': str(int(1000 * time.time())),
+            **params
+        }, API_KEY, API_SEC)
+
+    def get_withdrawal_status(self, params: dict):
+        """
+        Retrieve information about recent request withdrawals
+        https://docs.kraken.com/rest/#operation/getStatusRecentWithdrawals
+
+        Parameters
+        ----------
+        asset: string (required)
+            Asset being withdrawn
+        method: string
+            Name of the withdrawal method
+        :return:
+
+        Returns
+        -------
+        Response: Withdrawal <Array>
+            method: string
+                Name of the withdrawal method
+            aclass: string
+                Asset class
+            asset: string
+                Asset
+            refid: string
+                References ID
+            txid: string
+                Method transaction ID
+            info: string
+                Mehtod transaction information
+            amount: string
+                Amount withdrawn
+            fee: any
+                Fees paid
+            time: integer <int32>
+                Unix timestamp when request was made
+            status: string
+                Status of withdraw
+                Enum: "Initial" "Pending" "Settled" "Success" "Failure"
+            status-prop: string
+                Additional status properties (if available)
+                Enum:
+                    "cancel-pending" - cancelation requested
+                    "canceled" - canceled
+                    "cancel-denied" - cancelation requested but was denied
+                    "return" - a return transaction initiated by Kraken; it cannot be canceled
+                    "onhold" - withdrawal is on hold pending review
+        """
+        return self.kraken_request(self.API_WITHDRAW_STATUS, {
+            'nonce': str(int(1000 * time.time())),
+            **params
+        }, API_KEY, API_SEC)
+
+    def cancel_withdraw(self, params: dict):
+        """
+        Cancel a recently requested withdrawal, if it has not already been successfully processed
+        https://docs.kraken.com/rest/#operation/cancelWithdrawal
+
+        Parameters
+        ----------
+        asset: string (required)
+            Asset being withdrawn
+        refid: string (required)
+            Withdrawal reference ID
+        :returns:
+
+        Returns
+        -------
+        Response: boolean
+            Whether cancellation was successful or not
+        """
+        return self.kraken_request(self.API_WITHDRAW_CANCEL, {
+            'nonce': str(int(1000 * time.time())),
+            **params
+        }, API_KEY, API_SEC)
+
+    def request_wallet_transfer(self, params: dict):
+        """
+        Transfer from Kraken spot wallet to Kraken Futures holding wallet. Note that a transfer in the
+        other direction must be requested via the Kraken Futures API endpoint.
+        https://docs.kraken.com/rest/#operation/walletTransfer
+
+        Parameters
+        ----------
+        asset: string (required)
+            Asset to transfer (asset ID or altname)
+        from: string (required)
+            Source wallet
+            Value: "Spot Wallet"
+        to: string (required)
+            Destination wallet
+            Value: "Futures Wallet"
+        amount: string (required)
+            Amount to transfer
+        :returns:
+
+        Returns
+        -------
+        Response: object
+            refid: string
+                Reference ID
+        """
+        return self.kraken_request(self.API_WALLET_TRANSFER, {
+            "nonce": str(int(1000 * time.time())),
+            **params
+        }, API_KEY, API_SEC)
+
+    # ------------
+    # User Staking
+    # ------------
 
