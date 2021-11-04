@@ -65,6 +65,12 @@ class KrakenAPI:
         self.API_WITHDRAW_STATUS = '/0/private/WithdrawStatus'
         self.API_WITHDRAW_CANCEL = '/0/private/WithdrawCancel'
         self.API_WALLET_TRANSFER = '/0/private/WalletTransfer'
+        self.API_STAKE_ASSET = '/0/private/Stake'
+        self.API_UNSTAKE_ASSET = '/0/private/Unstake'
+        self.API_LIST_STAKING_ASSETS = '/0/private/Staking/Assets'
+        self.API_STAKE_PENDING = '/0/private/Staking/Pending'
+        self.API_STAKING_TRANSACTIONS = '/0/private/Staking/Transactions'
+        self.API_WEBSOCKET_TOKEN = '/0/private/GetWebSocketsToken'
 
     def kraken_request(self, uri_path: str, data: dict, api_key: str, api_sec: str):
         """Attaches auth headers and returns results of a POST request"""
@@ -831,7 +837,7 @@ class KrakenAPI:
             **params
         }, API_KEY, API_SEC)
 
-    def get_withdrawal_information(self,params: dict):
+    def get_withdrawal_information(self, params: dict):
         """
         Retrieve fee information about potential withdrawals for a particular asset, key and amount
         https://docs.kraken.com/rest/#operation/getWithdrawalInformation
@@ -997,4 +1003,205 @@ class KrakenAPI:
     # ------------
     # User Staking
     # ------------
+    def stake_asset(self, params: dict):
+        """
+        Stake an asset from your spot wallet. This operation requires an API key with Withdraw funds permission.
+        https://docs.kraken.com/rest/#operation/stake
 
+        Parameters
+        ----------
+        asset: string (required)
+            Asset tp stake (asset ID or altname)
+        amount: string (required)
+            Amount of the asset to stake
+        method: string (required)
+            Name of the staking option to use
+            (refer to the Staking Assets endpoint for the correct method names for each asset)
+        :returns:
+
+        Returns
+        -------
+        Response: object
+            refid: string
+                Reference ID
+        """
+        return self.kraken_request(self.API_STAKE_ASSET, {
+            'nonce': str(int(1000 * time.time())),
+            **params
+        }, API_KEY, API_SEC)
+
+    def unstake_asset(self, params: dict):
+        """
+        Unstake an asset from your staking wallet. This operation requires an API key with Withdraw funds permission.
+        https://docs.kraken.com/rest/#operation/unstake
+
+        Parameters
+        ----------
+        asset: string (required)
+            Asset to unstake (ass ID or altname). Must be a valid staking asset (e.g. XBT.M, XTZ.S, ADA.S)
+        amount: string (required)
+            Amount of the asset to unstake
+        :returns:
+        Returns
+        -------
+        Response: object
+            refid: string
+                Reference ID
+        """
+        return self.kraken_request(self.API_UNSTAKE_ASSET, {
+            'nonce': str(int(1000 * time.time())),
+            **params
+        }, API_KEY, API_SEC)
+
+    def list_stakeable_assets(self):
+        """
+        Returns the list of assets that the user is able to stake. This operation requires and
+        API key with both Withdraw funds and Query funds permission
+        https://docs.kraken.com/rest/#operation/getStakingAssetInfo
+
+        Returns
+        -------
+        Response: Array of objects <Staking Asset Information>
+            asset: string (required)
+                Asset code/name
+            satking_asset: string (required)
+                Staking asset code/name
+            method: string
+                Unique ID of the staking option (used in Stake/Unstake operations)
+            on_chain: boolean
+                Whether the staking operation is on-chain or not
+                Default: True
+            can_stake: boolean
+                Whether the staking operation is on-chain or not
+                Default: True
+            can_unstake: boolean
+                Whether the user will be able to unstake this asset
+                Default: True
+            minimum_amount: object
+                Minimum amounts for staking/unstaking
+                unstaking: string
+                    Default: "0"
+                staking: string
+                    Default: "0"
+            lock: object
+                Describes the locking periods and percentages for staking/unstaking operations
+                unstaking: Array
+                    days: integer
+                        Days the funds are locked
+                    percentage: integer
+                        Percentage of the funds that are locked (0-100)
+                staking: Array
+                    days: integer
+                        Days the funds are locked
+                    percentage: integer
+                        Percentage of the funds that are locked (0-100)
+                lockup: Array
+                    days: integer
+                        Days the funds are locked
+                    percentage: integer
+                        Percentage of the funds that are locked (0-100)
+            enabled_for_user: boolean
+                Default: True
+            disabled: boolean
+            rewards: object
+                Describes the rewards earned while staking
+                reward: string
+                    Reward earned while staking
+                type: string
+                    Reward type
+                    Value: "percentage"
+        """
+        return self.kraken_request(self.API_LIST_STAKING_ASSETS, {
+            'nonce': str(int(1000 * time.time())),
+        }, API_KEY, API_SEC)
+
+    def list_pending_staking_transactions(self):
+        """
+        Returns the list of pending staking transactions. Once resolved,
+        these transactions will appear on the List of Staking Transactions endpoint.
+        This operation requires an API key with both Query funds and Withdraw funds permissions.
+        https://docs.kraken.com/rest/#operation/getStakingPendingDeposits
+
+        Returns
+        -------
+        Response: Array (Staking Transaction Info)
+            ref: string
+                The reference ID of the transaction.
+            type: string
+                Enum: "bonding" "reward" "unbonding"
+                The type of transaction.
+            asset: string
+                Asset code/name
+            amount: string
+                The transaction amount
+            time: string
+                Unix timestamp when the transaction was initiated.
+            bond_start: integer
+                Unix timestamp from the start of bond period (applicable only to bonding transactions).
+            bond_end: integer
+                Unix timestamp of the end of bond period (applicable only to bonding transactions).
+            status: string
+                Enum: "Initial" "Pending" "Settled" "Success" "Failure"
+                Transaction status
+        """
+        return self.kraken_request(self.API_STAKE_PENDING, {
+            'nonce': str(int(1000 * time.time())),
+        }, API_KEY, API_SEC)
+
+    def list_staking_transactions(self):
+        """
+        Returns the list of all staking transactions.
+        This endpoint can only return up to 1000 of the most recent transactions.
+        This operation requires an API key with Query funds permissions.
+        https://docs.kraken.com/rest/#operation/getStakingTransactions
+
+        Returns
+        -------
+        Response: Array
+            refid: string
+                The reference ID of the transaction.
+            type: string
+                Enum: "bonding" "reward" "unbonding"
+                The type of transaction.
+            asset: string
+                Asset code/name
+            amount: string
+                The transaction amount
+            time: string
+                Unix timestamp when the transaction was initiated.
+            bond_start: integer
+                Unix timestamp from the start of bond period (applicable only to bonding transactions).
+            bond_end: integer
+                Unix timestamp of the end of bond period (applicable only to bonding transactions).
+            status: string
+                Enum: "Initial" "Pending" "Settled" "Success" "Failure"
+                Transaction status
+        """
+        return self.kraken_request(self.API_STAKING_TRANSACTIONS, {
+            'nonce': str(int(1000 * time.time())),
+        }, API_KEY, API_SEC)
+
+    # -------------------------
+    # Websocket Authentications
+    # -------------------------
+    def get_websocket_token(self):
+        """
+        An authentication token must be requested via this REST API endpoint in order to connect to and authenticate
+        with our Websockets API. The token should be used within 15 minutes of creation, but it does not expire once
+        a successful Websockets connection and private subscription has been made and is maintained.
+        The 'Access WebSockets API' permission must be enabled for the
+        API key in order to generate the authentication token.
+        https://docs.kraken.com/rest/#tag/Websockets-Authentication
+
+        Returns
+        -------
+        Response: object
+            token: string
+                Websockets token
+
+            expires: integer
+                Time (in seconds) after which the token expires
+        """
+        return self.kraken_request(self.API_WEBSOCKET_TOKEN, {
+            'nonce': str(int(1000 * time.time())),
+        }, API_KEY, API_SEC)
