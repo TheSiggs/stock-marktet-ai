@@ -32,12 +32,12 @@ class KrakenAPI:
         self.API_SERVER_TIME = self.API + '/0/public/Time'
         self.API_SYSTEM_STATUS = self.API + '/0/public/SystemStatus'
         self.API_ASSETS = self.API + '/0/public/Assets'
-        self.API_ASSET_PAIRS = self.API + '/0/public/AssetPairs?pair='  # Get Tradable Asset Pair - XXBTZUSD,XETHXXBT
-        self.API_TICKER = self.API + '/0/public/Ticker?pair='  # Get Ticker Information - pair of assets eg: XXBTZUSD,XETHXXBT
-        self.API_OHLC = self.API + '/0/public/OHLC?pair='
-        self.API_ORDER_BOOK = self.API + '/0/public/Depth?pair='
-        self.API_RECENT_TRADES = self.API + '/0/public/Trades?pair='
-        self.API_RECENT_SPREAD = self.API + '/0/public/Spread?pair='
+        self.API_ASSET_PAIRS = self.API + '/0/public/AssetPairs'  # Get Tradable Asset Pair - XXBTZUSD,XETHXXBT
+        self.API_TICKER = self.API + '/0/public/Ticker'  # Get Ticker Information - pair of assets eg: XXBTZUSD,XETHXXBT
+        self.API_OHLC = self.API + '/0/public/OHLC'
+        self.API_ORDER_BOOK = self.API + '/0/public/Depth'
+        self.API_RECENT_TRADES = self.API + '/0/public/Trades'
+        self.API_RECENT_SPREAD = self.API + '/0/public/Spread'
         self.API_BALANCE = '/0/private/Balance'
         self.API_TRADE_BALANCE = '/0/private/TradeBalance'
         self.API_OPEN_ORDERS = '/0/private/OpenOrders'
@@ -76,7 +76,7 @@ class KrakenAPI:
         """Attaches auth headers and returns results of a POST request"""
         headers = {'API-Key': api_key, 'API-Sign': get_kraken_signature(uri_path, data, api_sec)}
         req = requests.post((self.API + uri_path), headers=headers, data=data)
-        return req
+        return req.json()
 
     # ----------------
     # Public Endpoints
@@ -88,21 +88,21 @@ class KrakenAPI:
         Gets server time in a Unix timestamp and RFC1123 time format
         https://docs.kraken.com/rest/#operation/getServerTime
         """
-        return requests.get(self.API_SERVER_TIME)
+        return requests.get(self.API_SERVER_TIME).json()
 
     def get_system_status(self):
         """
         Get server status with timestamp in RFC3339 format
         https://docs.kraken.com/rest/#operation/getSystemStatus
         """
-        return requests.get(self.API_SYSTEM_STATUS)
+        return requests.get(self.API_SYSTEM_STATUS).json()
 
     def list_assets(self):
         """
         Gets a list of all the assets
         https://docs.kraken.com/rest/#operation/getAssetInfo
         """
-        return requests.get(self.API_ASSETS)
+        return requests.get(self.API_ASSETS).json()
 
     def get_asset_pairs(self, params: dict[str, str]):
         """
@@ -118,7 +118,7 @@ class KrakenAPI:
         :return:
         """
         query = QueryObject(params)
-        return requests.get(self.API_ASSET_PAIRS + query.str())
+        return requests.get(self.API_ASSET_PAIRS + query.str()).json()
 
     def get_tickers(self, pair: str):
         """
@@ -131,7 +131,7 @@ class KrakenAPI:
             Asset pair to get data for Example: pair=XBTUSD
         :return:
         """
-        return requests.get(self.API_TICKER + pair)
+        return requests.get(self.API_TICKER + '?pair=' + pair).json()
 
     def get_ohlc_data(self, params: dict):
         """
@@ -149,7 +149,7 @@ class KrakenAPI:
         :return:
         """
         query = QueryObject(params)
-        return requests.get(self.API_OHLC + query.str())
+        return requests.get(self.API_OHLC + query.str()).json()
 
     def get_order_book(self, params: dict):
         """
@@ -165,7 +165,7 @@ class KrakenAPI:
         :return:
         """
         query = QueryObject(params)
-        return requests.get(self.API_ORDER_BOOK + query.str())
+        return requests.get(self.API_ORDER_BOOK + query.str()).json()
 
     def get_recent_trades(self, params: dict):
         """
@@ -181,7 +181,7 @@ class KrakenAPI:
         :return:
         """
         query = QueryObject(params)
-        return requests.get(self.API_RECENT_TRADES + query.str())
+        return requests.get(self.API_RECENT_TRADES + query.str()).json()
 
     def get_recent_spread(self, params: dict):
         """
@@ -197,7 +197,7 @@ class KrakenAPI:
         :return:
         """
         query = QueryObject(params)
-        return requests.get(self.API_RECENT_SPREAD + query.str())
+        return requests.get(self.API_RECENT_SPREAD + query.str()).json()
 
     # -----------------------
     # Authenticated Endpoints

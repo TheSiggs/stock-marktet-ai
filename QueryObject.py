@@ -3,8 +3,8 @@ class QueryObject:
         self.data = data
 
     def str(self):
-        string = ''
+        string = '?'
         # Loop through data to create a string to parse into a http request
         for key, value in self.data.items():
-            string += '&{0}={1}'.format(key, value)
+            string += '{0}={1}&'.format(key, value)
         return string
