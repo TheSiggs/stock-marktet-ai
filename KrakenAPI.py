@@ -8,8 +8,8 @@ import time
 # Pandas Documentation Guide: https://pandas.pydata.org/docs/development/contributing_docstring.html#parameter-types
 from QueryObject import QueryObject
 
-API_KEY = 'lWr1ajj72dxsxPkNVyQKNum3iNHs9Jx1GAmCsABUxjwWBF1rpuDSyo03'
-API_SEC = 'KSMkkRkDsJnOeRrIs5JlkTwPgStNEwlzSq0PFPu4DMeFlLY7k24YsM2mAfuhQ8NuoQ77KfC/50+1Bj89UYlxOg=='
+API_KEY = '3e4XEHDyecsBbnpmFlHLStHzQkg56vnl1rT/FTjriDdcAvuoqh34L/J8'
+API_SEC = 'KDEq5xy9td1IWZc3dEtHdH1REaH/ut/xR2i4lLO2X8HkKMxP9tFeliPyyz6OEzs3yFOZ7d9E31+1T/CHLMG3Zg=='
 
 
 def get_kraken_signature(url_path, data, secret):
