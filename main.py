@@ -1,146 +1,96 @@
+from EMA import exponential_moving_average
 from KrakenAPI import KrakenAPI
 from datetime import datetime
-from termcolor import colored
-import pandas as pd
 import time
+from termcolor import colored
 
-from Point import Point, do_intersect
+from evaluateMovement import evaluate_movement
 
 kraken = KrakenAPI()
+
+currency = 'ETHUSD'
+pair = 'XETHZUSD'
 interval = 1
-currency = 'BTC/USD' or 'XXBTZUSD'
+index = -1
+did_price_action = False
+last_timestamp = 0
 
-
-def exponential_moving_average(values, period, span, default):
-    data = pd.DataFrame({'period': period, 'price': values})
-    data['mva'] = data['price'].ewm(span=span, adjust=False).mean()
-    newData = data['mva'].tail(1).values
-    if len(newData) == 1:
-        return newData[0]
-    else:
-        return default
-
-
-def evaluate_movement(data):
-    EMAP3 = Point(data[-2]['Unix Timestamp'], data[-2]['3 Period EMA'])
-    EMAQ3 = Point(data[-1]['Unix Timestamp'], data[-1]['3 Period EMA'])
-    EMAP6 = Point(data[-2]['Unix Timestamp'], data[-2]['6 Period EMA'])
-    EMAQ6 = Point(data[-1]['Unix Timestamp'], data[-1]['6 Period EMA'])
-    EMAP9 = Point(data[-2]['Unix Timestamp'], data[-2]['9 Period EMA'])
-    EMAQ9 = Point(data[-1]['Unix Timestamp'], data[-1]['9 Period EMA'])
-
-    if do_intersect(EMAP3, EMAQ3, EMAP6, EMAQ6) or do_intersect(EMAP3, EMAQ3, EMAP9, EMAQ9):
-        print('3P EMA intersected with 6P EMA')
-        if data[-1]['3 Period EMA'] > data[-2]['6 Period EMA']:
-            print("3P EMA is above 6P EMA")
-        if data[-1]['3 Period EMA'] < data[-2]['6 Period EMA']:
-            print("3P EMA is below 6P EMA")
-        if data[-1]['3 Period EMA'] > data[-2]['9 Period EMA']:
-            print("3P EMA is above 9P EMA")
-        if data[-1]['3 Period EMA'] < data[-2]['9 Period EMA']:
-            print("3P EMA is below 9P EMA")
-        # Check if the 3 Period EMA is going below the 6 and 9 Period EMA
-        # Also check if the last two candles are bearish
-        # If both are the case, it's a good time to sell
-        if data[-1]['3 Period EMA'] < data[-2]['9 Period EMA'] \
-                and data[-1]['3 Period EMA'] < data[-2]['6 Period EMA']:
-                # and data[-1]['Description'] == 'Bearish' \
-                # and data[-2]['Description'] == 'Bearish':
-            print('3EMA Going BELOW 6EMA and 9EMA and both candles are Bearish - SELL')
-        # Check if the 3 Period EMA is going above the 6 and 9 Period EMA
-        # Also check if the last two candles are bullish
-        # If both are the case, it's a good time to buy
-        if data[-1]['3 Period EMA'] > data[-2]['9 Period EMA'] \
-                and data[-1]['3 Period EMA'] > data[-2]['6 Period EMA']:
-                # and data[-1]['Description'] == 'Bullish' \
-                # and data[-2]['Description'] == 'Bullish':
-            print('3EMA Going ABOVE 6EMA and 9EMA and both candles are Bullish - BUY')
-
-
-ohlc = kraken.get_ohlc_data({'pair': currency, 'interval': interval})
-try:
-    ohlc = ohlc['result'][currency]
-except KeyError:
-    print(ohlc)
-
-ohlc_formatted = [
-    {
-        'Currency': currency,
-        'Unix Timestamp': data[0],
-        'Readable Time': datetime.utcfromtimestamp(data[0]).strftime('%d-%m-%Y %H:%M:%S'),
-        'Open Price': float(data[1]),
-        'Close Price': float(data[4]),
-        'Highest Price': float(data[2]),
-        'Lowest Price': float(data[3]),
-        'Volume Weighted Average Price': float(data[5]),
-        'Volume Traded': float(data[6]),
-        'Count': data[7],
-        'Description': 'Bullish' if float(data[4]) > float(data[1]) else 'Bearish',
-        '3 Period EMA': exponential_moving_average([value[5] for value in ohlc[0: index]],
-                                                   [value[0] for value in ohlc[0: index]], 3,
-                                                   data[5]),
-        '6 Period EMA': exponential_moving_average([value[5] for value in ohlc[0: index]],
-                                                   [value[0] for value in ohlc[0: index]], 6,
-                                                   data[5]),
-        '9 Period EMA': exponential_moving_average([value[5] for value in ohlc[0: index]],
-                                                   [value[0] for value in ohlc[0: index]], 9,
-                                                   data[5]),
-    } for index, data in enumerate(ohlc)]
-
-for data in ohlc_formatted:
-    colour = 'red' if data['Description'] == 'Bearish' else 'green'
-    print(colored(data, colour))
-
+# while True:
+#     time.sleep(3)
+#     tickers = kraken.get_tickers(currency)
+#     tickers = tickers['result'][pair]
+#     ticker_data = {
+#         'ask': {'price': tickers['a'][0], 'whole lot volume': tickers['a'][1], 'lot volume': tickers['a'][2]},
+#         'bid': {'price': tickers['b'][0], 'whole lot volume': tickers['b'][1], 'lot volume': tickers['b'][2]},
+#         'last trade': {'price': tickers['c'][0], 'lot volume': tickers['c'][1]},
+#         'volume': {'today': tickers['v'][0], 'last 24 hours': tickers['v'][1]},
+#         'VWAP': {'today': tickers['p'][0], 'last 24 hours': tickers['p'][1]},
+#         'Number of trades': {'today': tickers['t'][0], 'last 24 hours': tickers['t'][1]},
+#         'lows': {'today': tickers['l'][0], 'last 24 hours': tickers['l'][1]},
+#         'highs': {'today': tickers['h'][0], 'last 24 hours': tickers['h'][1]},
+#         'todays opening price': tickers['o']
+#     }
+#     print(ticker_data)
+prev = {}
 while True:
-    time.sleep(10)
-    ohlc = kraken.get_ohlc_data(
-        {'pair': currency, 'interval': interval, 'since': ohlc_formatted[-1]['Unix Timestamp']})
+    time.sleep(5)
+    ohlc = kraken.get_ohlc_data({'pair': currency, 'interval': interval})
     try:
-        new_ohlc = ohlc['result'][currency]
-        prev = ohlc_formatted[-1]['Unix Timestamp']
-        for data in new_ohlc:
-            if data[0] > ohlc_formatted[-1]['Unix Timestamp']:
-                new_entry = {
-                    'Currency': currency,
-                    'Unix Timestamp': data[0],
-                    'Readable Time': datetime.utcfromtimestamp(data[0]).strftime('%d-%m-%Y %H:%M:%S'),
-                    'Open Price': float(data[1]),
-                    'Close Price': float(data[4]),
-                    'Highest Price': float(data[2]),
-                    'Lowest Price': float(data[3]),
-                    'Volume Weighted Average Price': float(data[5]),
-                    'Volume Traded': float(data[6]),
-                    'Count': data[7],
-                    'Description': 'Bullish' if float(data[4]) > float(data[1]) else 'Bearish',
-                    '3 Period EMA': exponential_moving_average(
-                        [value['Volume Weighted Average Price'] for value in ohlc_formatted],
-                        [value['Unix Timestamp'] for value in ohlc_formatted], 3,
-                        data[5]),
-                    '6 Period EMA': exponential_moving_average(
-                        [value['Volume Weighted Average Price'] for value in ohlc_formatted],
-                        [value['Unix Timestamp'] for value in ohlc_formatted], 6,
-                        data[5]),
-                    '9 Period EMA': exponential_moving_average(
-                        [value['Volume Weighted Average Price'] for value in ohlc_formatted],
-                        [value['Unix Timestamp'] for value in ohlc_formatted], 9,
-                        data[5]),
-                }
-                if float(new_entry['Volume Weighted Average Price']) > 0.0:
-                    ohlc_formatted.append(new_entry)
-                    # evaluate_movement
-                    print(colored(ohlc_formatted[-1],
-                                  'red' if ohlc_formatted[-1]['Description'] == 'Bearish' else 'green'))
-
-                # temp_ohlc[new_entry['Unix Timestamp']] = new_entry
-                # if len(temp_ohlc) == 1:
-                #     prev = new_entry['Unix Timestamp']
-                # if len(temp_ohlc) == 2:
-                #     ohlc_formatted.append(temp_ohlc[prev])
-                #     del temp_ohlc[prev]
-                #     prev = new_entry['Unix Timestamp']
-                #     # evaluate_movement
-                #     evaluate_movement(ohlc_formatted)
-                #     print(colored(ohlc_formatted[-1],
-                #                   'red' if ohlc_formatted[-1]['Description'] == 'Bearish' else 'green'))
+        ohlc = ohlc['result'][pair]
     except KeyError:
+        print(ohlc['error'])
+    prev_ohlc = {
+        'Unix Timestamp': ohlc[-2][0],
+        'Readable Time': datetime.utcfromtimestamp(ohlc[-2][0]).strftime('%d-%m-%Y %H:%M:%S'),
+        'Open Price': float(ohlc[-2][1]),
+        'Close Price': float(ohlc[-2][4]),
+        'Highest Price': float(ohlc[-2][2]),
+        'Lowest Price': float(ohlc[-2][3]),
+        'Volume Weighted Average Price': float(ohlc[-2][5]),
+        'Volume Traded': float(ohlc[-2][6]),
+        'Count': ohlc[-2][7],
+        'Description': 'Bullish' if float(ohlc[-2][4]) >= float(ohlc[-2][1]) else 'Bearish',
+        '3 Period EMA': exponential_moving_average([value[4] for value in ohlc[0: -2]],
+                                                   [value[0] for value in ohlc[0: -2]], 3),
+        '6 Period EMA': exponential_moving_average([value[4] for value in ohlc[0: -2]],
+                                                   [value[0] for value in ohlc[0: -2]], 6),
+        '9 Period EMA': exponential_moving_average([value[4] for value in ohlc[0: -2]],
+                                                   [value[0] for value in ohlc[0: -2]], 9),
+    }
+    ohlc = {
+        'Unix Timestamp': ohlc[-1][0],
+        'Readable Time': datetime.utcfromtimestamp(ohlc[-1][0]).strftime('%d-%m-%Y %H:%M:%S'),
+        'Open Price': float(ohlc[-1][1]),
+        'Close Price': float(ohlc[-1][4]),
+        'Highest Price': float(ohlc[-1][2]),
+        'Lowest Price': float(ohlc[-1][3]),
+        'Volume Weighted Average Price': float(ohlc[-1][5]),
+        'Volume Traded': float(ohlc[-1][6]),
+        'Count': ohlc[-1][7],
+        'Description': 'Bullish' if float(ohlc[-1][4]) > float(ohlc[-1][1]) else 'Bearish',
+        '3 Period EMA': exponential_moving_average([value[4] for value in ohlc[0: -1]],
+                                                   [value[0] for value in ohlc[0: -1]], 3),
+        '6 Period EMA': exponential_moving_average([value[4] for value in ohlc[0: -1]],
+                                                   [value[0] for value in ohlc[0: -1]], 6),
+        '9 Period EMA': exponential_moving_average([value[4] for value in ohlc[0: -1]],
+                                                   [value[0] for value in ohlc[0: -1]], 9),
+    }
+    if ohlc['Unix Timestamp'] > last_timestamp:
+        last_timestamp = ohlc['Unix Timestamp']
+        did_price_action = False
+    if len(prev) == 0:
         print(ohlc)
+        prev = ohlc
+    else:
+        if ohlc['Count'] != prev['Count']:
+            prev = ohlc
+            print()
+            print(colored(prev_ohlc, 'red' if prev_ohlc['Description'] == 'Bearish' else 'green'))
+            print(colored(ohlc, 'red' if ohlc['Description'] == 'Bearish' else 'green'))
+            if not did_price_action:
+                action = evaluate_movement(ohlc, prev_ohlc)
+                did_price_action = action == 'BUY' or action == 'SELL'
+                if action == 'BUY':
+                    print('Buying Asset')
+                if action == 'SELL':
+                    print('Selling Asset')
