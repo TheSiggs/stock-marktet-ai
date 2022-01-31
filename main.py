@@ -17,7 +17,7 @@ did_price_action = False
 last_timestamp = 0
 
 prev = {}
-while True
+while True:
     time.sleep(5)
     ohlc = kraken.get_ohlc_data({'pair': currency, 'interval': interval})
     try:
