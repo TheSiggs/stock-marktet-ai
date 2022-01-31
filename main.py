@@ -3,7 +3,6 @@ from KrakenAPI import KrakenAPI
 from datetime import datetime
 import time
 from termcolor import colored
-
 from evaluateMovement import evaluate_movement
 
 kraken = KrakenAPI()
@@ -17,25 +16,8 @@ index = -1
 did_price_action = False
 last_timestamp = 0
 
-# while True:
-#     time.sleep(3)
-#     tickers = kraken.get_tickers(currency)
-#     tickers = tickers['result'][pair]
-#     ticker_data = {
-#         'ask': {'price': tickers['a'][0], 'whole lot volume': tickers['a'][1], 'lot volume': tickers['a'][2]},
-#         'bid': {'price': tickers['b'][0], 'whole lot volume': tickers['b'][1], 'lot volume': tickers['b'][2]},
-#         'last trade': {'price': tickers['c'][0], 'lot volume': tickers['c'][1]},
-#         'volume': {'today': tickers['v'][0], 'last 24 hours': tickers['v'][1]},
-#         'VWAP': {'today': tickers['p'][0], 'last 24 hours': tickers['p'][1]},
-#         'Number of trades': {'today': tickers['t'][0], 'last 24 hours': tickers['t'][1]},
-#         'lows': {'today': tickers['l'][0], 'last 24 hours': tickers['l'][1]},
-#         'highs': {'today': tickers['h'][0], 'last 24 hours': tickers['h'][1]},
-#         'todays opening price': tickers['o']
-#     }
-#     print(ticker_data)
-
 prev = {}
-while True:
+while True
     time.sleep(5)
     ohlc = kraken.get_ohlc_data({'pair': currency, 'interval': interval})
     try:
@@ -93,45 +75,29 @@ while True:
             if not did_price_action:
                 action = evaluate_movement(ohlc, prev_ohlc)
                 did_price_action = action == 'BUY' or action == 'SELL'
-                if action == 'BUY':
-                    print('Buying Asset')
+                try:
                     # Get account balance
-                    wallet = kraken.get_account_balance()
-                    try:
-                        wallet = wallet['result']
-                    except:
-                        print(wallet)
+                    wallet = kraken.get_account_balance()['result']
                     crypto_coin = wallet[wallet_coin]
                     dollar_coin = wallet[wallet_fiat]
 
                     # Calculate percentage of wallet
                     crypto_coin_usage = round((float(crypto_coin) * 0.2), 4)
                     crypto_coin_usage = crypto_coin_usage if crypto_coin_usage >= 0.004 else 0.004
+                    if action == 'BUY':
+                        print('Buying Asset')
+                        # Place Order
+                        print({'ordertype': 'market', 'type': 'buy', 'pair': pair, 'volume': crypto_coin_usage})
+                        resp = kraken.add_order(
+                            {'ordertype': 'market', 'type': 'buy', 'pair': pair, 'volume': crypto_coin_usage})
+                        print('Return:', resp)
+                    elif action == 'SELL':
+                        print('Selling Asset')
+                        # Place Order
+                        print({'ordertype': 'market', 'type': 'sell', 'pair': pair, 'volume': crypto_coin_usage})
+                        resp = kraken.add_order(
+                            {'ordertype': 'market', 'type': 'sell', 'pair': pair, 'volume': crypto_coin_usage})
+                        print('Return:', resp)
+                except e:
+                    print(e)
 
-
-                    # Place Order
-                    print({'ordertype': 'market', 'type': 'buy', 'pair': pair, 'volume': crypto_coin_usage})
-                    resp = kraken.add_order(
-                        {'ordertype': 'market', 'type': 'buy', 'pair': pair, 'volume': crypto_coin_usage})
-                    print('Return:', resp)
-
-                if action == 'SELL':
-                    print('Selling Asset')
-                    # Get account balance
-                    wallet = kraken.get_account_balance()
-                    try:
-                        wallet = wallet['result']
-                    except:
-                        print(wallet)
-                    crypto_coin = wallet[wallet_coin]
-                    dollar_coin = wallet[wallet_fiat]
-
-                    # Calculate percentage of wallet
-                    crypto_coin_usage = round((float(crypto_coin) * 0.2), 4)
-                    crypto_coin_usage = crypto_coin_usage if crypto_coin_usage >= 0.004 else 0.004
-
-                    # Place Order
-                    print({'ordertype': 'market', 'type': 'sell', 'pair': pair, 'volume': crypto_coin_usage})
-                    resp = kraken.add_order(
-                        {'ordertype': 'market', 'type': 'sell', 'pair': pair, 'volume': crypto_coin_usage})
-                    print('Return:', resp)
