@@ -4,12 +4,16 @@ import hashlib
 import hmac
 import base64
 import time
+from dotenv import load_dotenv
+import os
 
 # Pandas Documentation Guide: https://pandas.pydata.org/docs/development/contributing_docstring.html#parameter-types
 from QueryObject import QueryObject
 
-API_KEY = '3e4XEHDyecsBbnpmFlHLStHzQkg56vnl1rT/FTjriDdcAvuoqh34L/J8'
-API_SEC = 'KDEq5xy9td1IWZc3dEtHdH1REaH/ut/xR2i4lLO2X8HkKMxP9tFeliPyyz6OEzs3yFOZ7d9E31+1T/CHLMG3Zg=='
+load_dotenv()
+
+API_KEY = os.getenv('API_KEY')
+API_SEC = os.getenv('API_SEC')
 
 
 def get_kraken_signature(url_path, data, secret):
